@@ -9,7 +9,7 @@ namespace Activitypub;
 
 use WP_Post;
 use WP_Comment;
-use Activitypub\Collection\Users;
+use Activitypub\Collection\Actors;
 use Activitypub\Activity\Activity;
 use Activitypub\Collection\Followers;
 use Activitypub\Transformer\Factory;
@@ -51,7 +51,7 @@ class Activity_Dispatcher {
 		}
 
 		if ( is_single_user() ) {
-			self::send_activity( $wp_object, $type, Users::BLOG_USER_ID );
+			self::send_activity( $wp_object, $type, Actors::BLOG_USER_ID );
 		} else {
 			self::send_announce( $wp_object, $type );
 		}
@@ -69,6 +69,14 @@ class Activity_Dispatcher {
 
 		if ( \is_wp_error( $transformer ) ) {
 			return;
+		}
+
+		// check if user is disabled and blog user is enabled.
+		if (
+			is_user_disabled( $transformer->get_wp_user_id() ) &&
+			! is_user_disabled( Actors::BLOG_USER_ID )
+		) {
+			$transformer->change_wp_user_id( Actors::BLOG_USER_ID );
 		}
 
 		if ( null !== $user_id ) {
@@ -97,7 +105,7 @@ class Activity_Dispatcher {
 			return;
 		}
 
-		if ( is_user_disabled( Users::BLOG_USER_ID ) ) {
+		if ( is_user_disabled( Actors::BLOG_USER_ID ) ) {
 			return;
 		}
 
@@ -107,9 +115,9 @@ class Activity_Dispatcher {
 			return;
 		}
 
-		$user_id  = Users::BLOG_USER_ID;
+		$user_id  = Actors::BLOG_USER_ID;
 		$activity = $transformer->to_activity( $type );
-		$user     = Users::get_by_id( Users::BLOG_USER_ID );
+		$user     = Actors::get_by_id( Actors::BLOG_USER_ID );
 
 		$announce = new Activity();
 		$announce->set_type( 'Announce' );
@@ -125,7 +133,7 @@ class Activity_Dispatcher {
 	 * @param int $user_id The user ID to send an update for.
 	 */
 	public static function send_profile_update( $user_id ) {
-		$user = Users::get_by_various( $user_id );
+		$user = Actors::get_by_various( $user_id );
 
 		// Bail if that's not a good user.
 		if ( is_wp_error( $user ) ) {
@@ -135,9 +143,9 @@ class Activity_Dispatcher {
 		// Build the update.
 		$activity = new Activity();
 		$activity->set_type( 'Update' );
-		$activity->set_actor( $user->get_url() );
-		$activity->set_object( $user->get_url() );
-		$activity->set_to( 'https://www.w3.org/ns/activitystreams#Public' );
+		$activity->set_actor( $user->get_id() );
+		$activity->set_object( $user->get_id() );
+		$activity->set_to( array( 'https://www.w3.org/ns/activitystreams#Public' ) );
 
 		// Send the update.
 		self::send_activity_to_followers( $activity, $user_id, $user );
@@ -195,7 +203,7 @@ class Activity_Dispatcher {
 	public static function send_post( $id, $type ) {
 		$post = get_post( $id );
 
-		if ( ! $post ) {
+		if ( ! $post || is_post_disabled( $post ) ) {
 			return;
 		}
 
@@ -268,8 +276,8 @@ class Activity_Dispatcher {
 	 * @return array The filtered Inboxes.
 	 */
 	public static function add_inboxes_by_mentioned_actors( $inboxes, $user_id, $activity ) {
-		$cc = $activity->get_cc();
-		$to = $activity->get_to();
+		$cc = $activity->get_cc() ?? array();
+		$to = $activity->get_to() ?? array();
 
 		$audience = array_merge( $cc, $to );
 

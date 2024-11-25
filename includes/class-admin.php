@@ -9,7 +9,7 @@ namespace Activitypub;
 
 use WP_User_Query;
 use Activitypub\Model\Blog;
-use Activitypub\Collection\Users;
+use Activitypub\Collection\Actors;
 use Activitypub\Collection\Extra_Fields;
 
 /**
@@ -27,6 +27,8 @@ class Admin {
 		\add_action( 'load-comment.php', array( self::class, 'edit_comment' ) );
 		\add_action( 'load-post.php', array( self::class, 'edit_post' ) );
 		\add_action( 'load-edit.php', array( self::class, 'list_posts' ) );
+		\add_filter( 'page_row_actions', array( self::class, 'row_actions' ), 10, 2 );
+		\add_filter( 'post_row_actions', array( self::class, 'row_actions' ), 10, 2 );
 		\add_action( 'personal_options_update', array( self::class, 'save_user_settings' ) );
 		\add_action( 'admin_enqueue_scripts', array( self::class, 'enqueue_scripts' ) );
 		\add_action( 'admin_notices', array( self::class, 'admin_notices' ) );
@@ -72,7 +74,7 @@ class Admin {
 			$followers_list_page = \add_users_page(
 				\__( '⁂ Followers', 'activitypub' ),
 				\__( '⁂ Followers', 'activitypub' ),
-				'read',
+				'activitypub',
 				'activitypub-followers-list',
 				array(
 					self::class,
@@ -88,7 +90,7 @@ class Admin {
 			\add_users_page(
 				\__( '⁂ Extra Fields', 'activitypub' ),
 				\__( '⁂ Extra Fields', 'activitypub' ),
-				'read',
+				'activitypub',
 				\esc_url( \admin_url( '/edit.php?post_type=ap_extrafield' ) )
 			);
 		}
@@ -100,7 +102,11 @@ class Admin {
 	public static function admin_notices() {
 		$permalink_structure = \get_option( 'permalink_structure' );
 		if ( empty( $permalink_structure ) ) {
-			$admin_notice = \__( 'You are using the ActivityPub plugin with a permalink structure of "plain". This will prevent ActivityPub from working.  Please go to "Settings" / "Permalinks" and choose a permalink structure other than "plain".', 'activitypub' );
+			$admin_notice = sprintf(
+				/* translators: %s: Permalink settings URL. */
+				\__( 'ActivityPub needs SEO-friendly URLs to work properly. Please <a href="%s">update your permalink structure</a> to an option other than Plain.', 'activitypub' ),
+				esc_url( admin_url( 'options-permalink.php' ) )
+			);
 			self::show_admin_notice( $admin_notice, 'error' );
 		}
 
@@ -236,7 +242,7 @@ class Admin {
 						),
 					),
 				),
-				'default'      => 'note',
+				'default'      => ACTIVITYPUB_DEFAULT_OBJECT_TYPE,
 			)
 		);
 		\register_setting(
@@ -269,20 +275,29 @@ class Admin {
 		);
 		\register_setting(
 			'activitypub',
-			'activitypub_enable_users',
+			'activitypub_actor_mode',
 			array(
-				'type'        => 'boolean',
-				'description' => \__( 'Every Author on this Blog (with the publish_posts capability) gets his own ActivityPub enabled Profile.', 'activitypub' ),
-				'default'     => '1',
+				'type'        => 'integer',
+				'description' => \__( 'Choose your preferred Actor-Mode.', 'activitypub' ),
+				'default'     => ACTIVITYPUB_ACTOR_MODE,
 			)
 		);
+
 		\register_setting(
 			'activitypub',
-			'activitypub_enable_blog_user',
+			'activitypub_attribution_domains',
 			array(
-				'type'        => 'boolean',
-				'description' => \__( 'Your Blog becomes an ActivityPub compatible Profile.', 'activitypub' ),
-				'default'     => '0',
+				'type'              => 'string',
+				'description'       => \__( 'Websites allowed to credit you.', 'activitypub' ),
+				'default'           => home_host(),
+				'sanitize_callback' => function ( $value ) {
+					$value = explode( PHP_EOL, $value );
+					$value = array_filter( array_map( 'trim', $value ) );
+					$value = array_filter( array_map( 'esc_attr', $value ) );
+					$value = implode( PHP_EOL, $value );
+
+					return $value;
+				},
 			)
 		);
 
@@ -435,7 +450,7 @@ class Admin {
 				ACTIVITYPUB_PLUGIN_FILE
 			),
 			array( 'jquery' ),
-			get_plugin_version(),
+			ACTIVITYPUB_PLUGIN_VERSION,
 			false
 		);
 
@@ -447,7 +462,7 @@ class Admin {
 					ACTIVITYPUB_PLUGIN_FILE
 				),
 				array(),
-				get_plugin_version()
+				ACTIVITYPUB_PLUGIN_VERSION
 			);
 			wp_enqueue_script(
 				'activitypub-admin-script',
@@ -456,7 +471,7 @@ class Admin {
 					ACTIVITYPUB_PLUGIN_FILE
 				),
 				array( 'jquery' ),
-				get_plugin_version(),
+				ACTIVITYPUB_PLUGIN_VERSION,
 				false
 			);
 		}
@@ -469,7 +484,7 @@ class Admin {
 					ACTIVITYPUB_PLUGIN_FILE
 				),
 				array(),
-				get_plugin_version()
+				ACTIVITYPUB_PLUGIN_VERSION
 			);
 		}
 	}
@@ -764,10 +779,10 @@ class Admin {
 				_n(
 					'%s Follower (Blog)',
 					'%s Followers (Blog)',
-					count_followers( Users::BLOG_USER_ID ),
+					count_followers( Actors::BLOG_USER_ID ),
 					'activitypub'
 				),
-				\number_format_i18n( count_followers( Users::BLOG_USER_ID ) )
+				\number_format_i18n( count_followers( Actors::BLOG_USER_ID ) )
 			);
 			$items['activitypub-followers-blog'] = sprintf(
 				'<a class="activitypub-followers" href="%1$s" title="%2$s">%3$s</a>',
@@ -780,5 +795,36 @@ class Admin {
 		\remove_filter( 'number_format_i18n', '\Activitypub\custom_large_numbers' );
 
 		return $items;
+	}
+
+	/**
+	 * Add a "⁂ Preview" link to the row actions.
+	 *
+	 * @param array    $actions The existing actions.
+	 * @param \WP_Post $post    The post object.
+	 *
+	 * @return array The modified actions.
+	 */
+	public static function row_actions( $actions, $post ) {
+		// check if the post is enabled for ActivityPub.
+		if (
+			! \post_type_supports( \get_post_type( $post ), 'activitypub' ) ||
+			! in_array( $post->post_status, array( 'pending', 'draft', 'future', 'publish' ), true ) ||
+			! \current_user_can( 'edit_post', $post->ID ) ||
+			ACTIVITYPUB_CONTENT_VISIBILITY_LOCAL === get_content_visibility( $post ) ||
+			site_supports_blocks()
+		) {
+			return $actions;
+		}
+
+		$preview_url = add_query_arg( 'activitypub', 'true', \get_preview_post_link( $post ) );
+
+		$actions['activitypub'] = sprintf(
+			'<a href="%s" target="_blank">%s</a>',
+			\esc_url( $preview_url ),
+			\esc_html__( '⁂ Fediverse Preview', 'activitypub' )
+		);
+
+		return $actions;
 	}
 }

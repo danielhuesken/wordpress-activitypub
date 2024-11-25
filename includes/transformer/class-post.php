@@ -10,11 +10,12 @@ namespace Activitypub\Transformer;
 use WP_Post;
 use Activitypub\Shortcodes;
 use Activitypub\Model\Blog;
-use Activitypub\Collection\Users;
+use Activitypub\Collection\Actors;
 
 use function Activitypub\esc_hashtag;
 use function Activitypub\is_single_user;
 use function Activitypub\get_enclosures;
+use function Activitypub\get_upload_baseurl;
 use function Activitypub\get_content_warning;
 use function Activitypub\site_supports_blocks;
 use function Activitypub\generate_post_summary;
@@ -78,10 +79,17 @@ class Post extends Base {
 			$object->set_summary_map( null );
 		}
 
-		// Change order if visibility is "Quiet public".
-		if ( ACTIVITYPUB_CONTENT_VISIBILITY_QUIET_PUBLIC === get_content_visibility( $post ) ) {
-			$object->set_to( $this->get_cc() );
-			$object->set_cc( $this->get_to() );
+		$visibility = get_content_visibility( $post );
+
+		switch ( $visibility ) {
+			case ACTIVITYPUB_CONTENT_VISIBILITY_QUIET_PUBLIC:
+				$object->set_to( $this->get_cc() );
+				$object->set_cc( $this->get_to() );
+				break;
+			case ACTIVITYPUB_CONTENT_VISIBILITY_LOCAL:
+				$object->set_to( array() );
+				$object->set_cc( array() );
+				break;
 		}
 
 		return $object;
@@ -94,7 +102,7 @@ class Post extends Base {
 	 *
 	 * @return \Activitypub\Activity\Actor The User-Object.
 	 */
-	protected function get_actor_object() {
+	public function get_actor_object() {
 		if ( $this->actor_object ) {
 			return $this->actor_object;
 		}
@@ -106,7 +114,7 @@ class Post extends Base {
 			return $blog_user;
 		}
 
-		$user = Users::get_by_id( $this->wp_object->post_author );
+		$user = Actors::get_by_id( $this->wp_object->post_author );
 
 		if ( $user && ! is_wp_error( $user ) ) {
 			$this->actor_object = $user;
@@ -121,7 +129,15 @@ class Post extends Base {
 	 *
 	 * @return string The Posts ID.
 	 */
-	protected function get_id() {
+	public function get_id() {
+		$last_legacy_id = (int) \get_option( 'activitypub_last_post_with_permalink_as_id', 0 );
+		$post_id        = (int) $this->wp_object->ID;
+
+		if ( $post_id > $last_legacy_id ) {
+			// Generate URI based on post ID.
+			return \add_query_arg( 'p', $post_id, \trailingslashit( \home_url() ) );
+		}
+
 		return $this->get_url();
 	}
 
@@ -161,7 +177,60 @@ class Post extends Base {
 	 * @return string The User-URL.
 	 */
 	protected function get_attributed_to() {
-		return $this->get_actor_object()->get_url();
+		return $this->get_actor_object()->get_id();
+	}
+
+	/**
+	 * Returns the featured image as `Image`.
+	 *
+	 * @return array|null The Image or null if no image is available.
+	 */
+	protected function get_image() {
+		$post_id = $this->wp_object->ID;
+
+		// List post thumbnail first if this post has one.
+		if (
+			! \function_exists( 'has_post_thumbnail' ) ||
+			! \has_post_thumbnail( $post_id )
+		) {
+			return null;
+		}
+
+		$id         = \get_post_thumbnail_id( $post_id );
+		$image_size = 'large';
+
+		/**
+		 * Filter the image URL returned for each post.
+		 *
+		 * @param array|false $thumbnail  The image URL, or false if no image is available.
+		 * @param int         $id         The attachment ID.
+		 * @param string      $image_size The image size to retrieve. Set to 'large' by default.
+		 */
+		$thumbnail = apply_filters(
+			'activitypub_get_image',
+			self::get_wordpress_attachment( $id, $image_size ),
+			$id,
+			$image_size
+		);
+
+		if ( ! $thumbnail ) {
+			return null;
+		}
+
+		$mime_type = \get_post_mime_type( $id );
+
+		$image = array(
+			'type'      => 'Image',
+			'url'       => \esc_url( $thumbnail[0] ),
+			'mediaType' => \esc_attr( $mime_type ),
+		);
+
+		$alt = \get_post_meta( $id, '_wp_attachment_image_alt', true );
+		if ( $alt ) {
+			$image['name'] = \wp_strip_all_tags( \html_entity_decode( $alt ) );
+		}
+
+		return $image;
 	}
 
 	/**
@@ -409,14 +478,22 @@ class Post extends Base {
 		}
 
 		$images  = array();
-		$base    = \wp_get_upload_dir()['baseurl'];
+		$base    = get_upload_baseurl();
 		$content = \get_post_field( 'post_content', $this->wp_object );
 		$tags    = new \WP_HTML_Tag_Processor( $content );
 
 		// This linter warning is a false positive - we have to re-count each time here as we modify $images.
 		// phpcs:ignore Squiz.PHP.DisallowSizeFunctionsInLoops.Found
 		while ( $tags->next_tag( 'img' ) && ( \count( $images ) <= $max_images ) ) {
-			$src = $tags->get_attribute( 'src' );
+			/**
+			 * Filter the image source URL.
+			 *
+			 * This can be used to modify the image source URL before it is used to
+			 * determine the attachment ID.
+			 *
+			 * @param string $src The image source URL.
+			 */
+			$src = \apply_filters( 'activitypub_image_src', $tags->get_attribute( 'src' ) );
 
 			/*
 			 * If the img source is in our uploads dir, get the
@@ -432,15 +509,21 @@ class Post extends Base {
 				$img_id = \attachment_url_to_postid( $src );
 
 				if ( 0 === $img_id ) {
+					$count  = 0;
+					$src    = \strtok( $src, '?' );
+					$img_id = \attachment_url_to_postid( $src );
+				}
+
+				if ( 0 === $img_id ) {
 					$count = 0;
-					$src   = preg_replace( '/-(?:\d+x\d+)(\.[a-zA-Z]+)$/', '$1', $src, 1, $count );
+					$src   = \preg_replace( '/-(?:\d+x\d+)(\.[a-zA-Z]+)$/', '$1', $src, 1, $count );
 					if ( $count > 0 ) {
 						$img_id = \attachment_url_to_postid( $src );
 					}
 				}
 
 				if ( 0 === $img_id ) {
-					$src    = preg_replace( '/(\.[a-zA-Z]+)$/', '-scaled$1', $src );
+					$src    = \preg_replace( '/(\.[a-zA-Z]+)$/', '-scaled$1', $src );
 					$img_id = \attachment_url_to_postid( $src );
 				}
 
@@ -661,33 +744,14 @@ class Post extends Base {
 			return 'Note';
 		}
 
-		// Default to Article.
-		$object_type = 'Article';
-		$post_format = 'standard';
+		// Default to Note.
+		$object_type = 'Note';
+		$post_type   = \get_post_type( $this->wp_object );
 
-		if ( \get_theme_support( 'post-formats' ) ) {
-			$post_format = \get_post_format( $this->wp_object );
-		}
-
-		$post_type = \get_post_type( $this->wp_object );
-		switch ( $post_type ) {
-			case 'post':
-				switch ( $post_format ) {
-					case 'standard':
-					case '':
-						$object_type = 'Article';
-						break;
-					default:
-						$object_type = 'Note';
-						break;
-				}
-				break;
-			case 'page':
-				$object_type = 'Page';
-				break;
-			default:
-				$object_type = 'Article';
-				break;
+		if ( 'page' === $post_type ) {
+			$object_type = 'Page';
+		} elseif ( ! \get_post_format( $this->wp_object ) ) {
+			$object_type = 'Article';
 		}
 
 		return $object_type;
@@ -734,12 +798,14 @@ class Post extends Base {
 	 * @return string|null The audience.
 	 */
 	public function get_audience() {
-		if ( is_single_user() ) {
-			return null;
-		} else {
+		$actor_mode = \get_option( 'activitypub_actor_mode', ACTIVITYPUB_ACTOR_MODE );
+
+		if ( ACTIVITYPUB_ACTOR_AND_BLOG_MODE === $actor_mode ) {
 			$blog = new Blog();
 			return $blog->get_id();
 		}
+
+		return null;
 	}
 
 	/**
@@ -793,7 +859,7 @@ class Post extends Base {
 		}
 
 		// Remove Teaser from drafts.
-		if ( 'draft' === \get_post_status( $this->wp_object ) ) {
+		if ( ! $this->is_preview() && 'draft' === \get_post_status( $this->wp_object ) ) {
 			return \__( '(This post is being modified)', 'activitypub' );
 		}
 
@@ -815,15 +881,15 @@ class Post extends Base {
 
 		$title = \get_the_title( $this->wp_object->ID );
 
-		if ( $title ) {
-			return \wp_strip_all_tags(
-				\html_entity_decode(
-					$title
-				)
-			);
+		if ( ! $title ) {
+			return null;
 		}
 
-		return null;
+		return \wp_strip_all_tags(
+			\html_entity_decode(
+				$title
+			)
+		);
 	}
 
 	/**
@@ -837,7 +903,7 @@ class Post extends Base {
 		add_filter( 'activitypub_reply_block', '__return_empty_string' );
 
 		// Remove Content from drafts.
-		if ( 'draft' === \get_post_status( $this->wp_object ) ) {
+		if ( ! $this->is_preview() && 'draft' === \get_post_status( $this->wp_object ) ) {
 			return \__( '(This post is being modified)', 'activitypub' );
 		}
 
@@ -858,12 +924,17 @@ class Post extends Base {
 		$post    = $this->wp_object;
 		$content = $this->get_post_content_template();
 
+		// It seems that shortcodes are only applied to published posts.
+		if ( is_preview() ) {
+			$post->post_status = 'publish';
+		}
+
 		// Register our shortcodes just in time.
 		Shortcodes::register();
 		// Fill in the shortcodes.
-		setup_postdata( $post );
-		$content = do_shortcode( $content );
-		wp_reset_postdata();
+		\setup_postdata( $post );
+		$content = \do_shortcode( $content );
+		\wp_reset_postdata();
 
 		$content = \wpautop( $content );
 		$content = \preg_replace( '/[\n\r\t]/', '', $content );
@@ -883,28 +954,19 @@ class Post extends Base {
 	 * @return string The Template.
 	 */
 	protected function get_post_content_template() {
-		$type = \get_option( 'activitypub_post_content_type', 'content' );
-
-		switch ( $type ) {
-			case 'excerpt':
-				$template = "[ap_excerpt]\n\n[ap_permalink type=\"html\"]";
-				break;
-			case 'title':
-				$template = "<h2>[ap_title]</h2>\n\n[ap_permalink type=\"html\"]";
-				break;
-			case 'content':
-				$template = "[ap_content]\n\n[ap_permalink type=\"html\"]\n\n[ap_hashtags]";
-				break;
-			default:
-				$content  = \get_option( 'activitypub_custom_post_content', ACTIVITYPUB_CUSTOM_POST_CONTENT );
-				$template = empty( $content ) ? ACTIVITYPUB_CUSTOM_POST_CONTENT : $content;
-				break;
-		}
+		$content  = \get_option( 'activitypub_custom_post_content', ACTIVITYPUB_CUSTOM_POST_CONTENT );
+		$template = $content ?? ACTIVITYPUB_CUSTOM_POST_CONTENT;
 
 		$post_format_setting = \get_option( 'activitypub_object_type', ACTIVITYPUB_DEFAULT_OBJECT_TYPE );
 
 		if ( 'wordpress-post-format' === $post_format_setting ) {
-			$template = '[ap_content]';
+			$template = '';
+
+			if ( 'Note' === $this->get_type() ) {
+				$template .= "[ap_title type=\"html\"]\n\n";
+			}
+
+			$template .= '[ap_content]';
 		}
 
 		return apply_filters( 'activitypub_object_content_template', $template, $this->wp_object );
@@ -1056,6 +1118,18 @@ class Post extends Base {
 	 * @return string A block level link
 	 */
 	public static function revert_embed_links( $block_content, $block ) {
+		if ( ! isset( $block['attrs']['url'] ) ) {
+			return $block_content;
+		}
 		return '<p><a href="' . esc_url( $block['attrs']['url'] ) . '">' . $block['attrs']['url'] . '</a></p>';
+	}
+
+	/**
+	 * Check if the post is a preview.
+	 *
+	 * @return boolean True if the post is a preview, false otherwise.
+	 */
+	private function is_preview() {
+		return defined( 'ACTIVITYPUB_PREVIEW' ) && ACTIVITYPUB_PREVIEW;
 	}
 }

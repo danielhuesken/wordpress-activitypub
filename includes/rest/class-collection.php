@@ -7,15 +7,14 @@
 
 namespace Activitypub\Rest;
 
+use WP_Error;
 use WP_REST_Server;
 use WP_REST_Response;
 use Activitypub\Activity\Actor;
-use Activitypub\Activity\Base_Object;
-use Activitypub\Collection\Users as User_Collection;
 use Activitypub\Collection\Replies;
-
 use Activitypub\Transformer\Factory;
-use WP_Error;
+use Activitypub\Activity\Base_Object;
+use Activitypub\Collection\Actors as User_Collection;
 
 use function Activitypub\esc_hashtag;
 use function Activitypub\is_single_user;
@@ -48,7 +47,6 @@ class Collection {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( self::class, 'tags_get' ),
-					'args'                => self::request_parameters(),
 					'permission_callback' => '__return_true',
 				),
 			)
@@ -61,7 +59,6 @@ class Collection {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( self::class, 'featured_get' ),
-					'args'                => self::request_parameters(),
 					'permission_callback' => '__return_true',
 				),
 			)
@@ -102,15 +99,16 @@ class Collection {
 	 */
 	public static function replies_get( $request ) {
 		$type = $request->get_param( 'type' );
+		$id   = (int) $request->get_param( 'id' );
 
 		// Get the WordPress object of that "owns" the requested replies.
 		switch ( $type ) {
 			case 'comment':
-				$wp_object = \get_comment( $request->get_param( 'id' ) );
+				$wp_object = \get_comment( $id );
 				break;
 			case 'post':
 			default:
-				$wp_object = \get_post( $request->get_param( 'id' ) );
+				$wp_object = \get_post( $id );
 				break;
 		}
 
@@ -125,7 +123,7 @@ class Collection {
 			);
 		}
 
-		$page = intval( $request->get_param( 'page' ) );
+		$page = (int) $request->get_param( 'page' );
 
 		// If the request parameter page is present get the CollectionPage otherwise the replies collection.
 		if ( isset( $page ) ) {
@@ -218,12 +216,20 @@ class Collection {
 
 		if ( ! is_single_user() && User_Collection::BLOG_USER_ID === $user->get__id() ) {
 			$posts = array();
-		} elseif ( is_array( $sticky_posts ) ) {
+		} elseif ( $sticky_posts && is_array( $sticky_posts ) ) {
+			// only show public posts.
 			$args = array(
 				'post__in'            => $sticky_posts,
 				'ignore_sticky_posts' => 1,
 				'orderby'             => 'date',
 				'order'               => 'DESC',
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+				'meta_query'          => array(
+					array(
+						'key'     => 'activitypub_content_visibility',
+						'compare' => 'NOT EXISTS',
+					),
+				),
 			);
 
 			if ( $user->get__id() > 0 ) {
@@ -275,29 +281,13 @@ class Collection {
 		$users = User_Collection::get_collection();
 
 		foreach ( $users as $user ) {
-			$response['orderedItems'][] = $user->get_url();
+			$response['orderedItems'][] = $user->get_id();
 		}
 
 		$rest_response = new WP_REST_Response( $response, 200 );
 		$rest_response->header( 'Content-Type', 'application/activity+json; charset=' . get_option( 'blog_charset' ) );
 
 		return $rest_response;
-	}
-
-	/**
-	 * The supported parameters.
-	 *
-	 * @return array List of parameters.
-	 */
-	public static function request_parameters() {
-		$params = array();
-
-		$params['user_id'] = array(
-			'required' => true,
-			'type'     => 'string',
-		);
-
-		return $params;
 	}
 
 	/**
@@ -315,8 +305,9 @@ class Collection {
 		);
 
 		$params['id'] = array(
-			'required' => true,
-			'type'     => 'string',
+			'required'          => true,
+			'type'              => 'string',
+			'sanitize_callback' => 'sanitize_text_field',
 		);
 
 		return $params;

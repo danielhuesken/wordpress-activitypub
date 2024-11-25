@@ -8,7 +8,7 @@
 namespace Activitypub\Rest;
 
 use WP_REST_Response;
-use Activitypub\Collection\Users as User_Collection;
+use Activitypub\Collection\Actors as User_Collection;
 
 use function Activitypub\is_single_user;
 use function Activitypub\get_rest_url_by_path;
@@ -111,11 +111,6 @@ class Following {
 			'type' => 'integer',
 		);
 
-		$params['user_id'] = array(
-			'required' => true,
-			'type'     => 'string',
-		);
-
 		return $params;
 	}
 
@@ -136,7 +131,7 @@ class Following {
 		$users = User_Collection::get_collection();
 
 		foreach ( $users as $user ) {
-			$follow_list[] = $user->get_url();
+			$follow_list[] = $user->get_id();
 		}
 
 		return $follow_list;

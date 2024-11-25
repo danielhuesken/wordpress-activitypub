@@ -29,8 +29,8 @@
 						<td>
 							<p>
 								<label>
-									<input type="checkbox" name="activitypub_enable_users" id="activitypub_enable_users" value="1" <?php echo \checked( '1', \get_option( 'activitypub_enable_users', '1' ) ); ?> />
-									<?php \esc_html_e( 'Enable Author-Profiles', 'activitypub' ); ?>
+									<input type="radio" name="activitypub_actor_mode" id="activitypub_actor_mode" value="<?php echo esc_attr( ACTIVITYPUB_ACTOR_MODE ); ?>" <?php echo \checked( ACTIVITYPUB_ACTOR_MODE, \get_option( 'activitypub_actor_mode', ACTIVITYPUB_ACTOR_MODE ) ); ?> />
+									<strong><?php \esc_html_e( 'Author Profiles Only', 'activitypub' ); ?></strong>
 								</label>
 							</p>
 							<p class="description">
@@ -41,12 +41,21 @@
 							</p>
 							<p>
 								<label>
-									<input type="checkbox" name="activitypub_enable_blog_user" id="activitypub_enable_blog_user" value="1" <?php echo \checked( '1', \get_option( 'activitypub_enable_blog_user', '0' ) ); ?> />
-									<?php \esc_html_e( 'Enable Blog-Profile', 'activitypub' ); ?>
+									<input type="radio" name="activitypub_actor_mode" id="activitypub_actor_mode" value="<?php echo esc_attr( ACTIVITYPUB_BLOG_MODE ); ?>" <?php echo \checked( ACTIVITYPUB_BLOG_MODE, \get_option( 'activitypub_actor_mode', ACTIVITYPUB_ACTOR_MODE ) ); ?> />
+									<strong><?php \esc_html_e( 'Blog profile only', 'activitypub' ); ?></strong>
 								</label>
 							</p>
 							<p class="description">
-								<?php \esc_html_e( 'Your blog becomes an ActivityPub profile.', 'activitypub' ); ?>
+								<?php \esc_html_e( 'Your blog becomes a single ActivityPub profile and every post will be published under this profile instead of the individual author profiles.', 'activitypub' ); ?>
+							</p>
+							<p>
+								<label>
+									<input type="radio" name="activitypub_actor_mode" id="activitypub_actor_mode" value="<?php echo esc_attr( ACTIVITYPUB_ACTOR_AND_BLOG_MODE ); ?>" <?php echo \checked( ACTIVITYPUB_ACTOR_AND_BLOG_MODE, \get_option( 'activitypub_actor_mode', ACTIVITYPUB_ACTOR_MODE ) ); ?> />
+									<strong><?php \esc_html_e( 'Both author and blog profiles', 'activitypub' ); ?></strong>
+								</label>
+							</p>
+							<p class="description">
+								<?php \esc_html_e( "This combines both modes. Users can be followed individually, while following the blog will show boosts of individual user's posts.", 'activitypub' ); ?>
 							</p>
 						</td>
 					</tr>
@@ -66,26 +75,25 @@
 						</th>
 						<td>
 							<p>
+								<label>
+									<input type="radio" name="activitypub_object_type" id="activitypub_object_type" value="wordpress-post-format" <?php echo \checked( 'wordpress-post-format', \get_option( 'activitypub_object_type', ACTIVITYPUB_DEFAULT_OBJECT_TYPE ) ); ?> />
+									<?php \esc_html_e( 'Automatic (default)', 'activitypub' ); ?>
+									-
+									<span class="description">
+										<?php \esc_html_e( 'Let the plugin choose the best possible format for you.', 'activitypub' ); ?>
+									</span>
+								</label>
+							</p>
+							<p>
 								<label for="activitypub_object_type_note">
 									<input type="radio" name="activitypub_object_type" id="activitypub_object_type_note" value="note" <?php echo \checked( 'note', \get_option( 'activitypub_object_type', ACTIVITYPUB_DEFAULT_OBJECT_TYPE ) ); ?> />
-									<?php \esc_html_e( 'Note (default)', 'activitypub' ); ?>
+									<?php \esc_html_e( 'Note', 'activitypub' ); ?>
 									-
 									<span class="description">
 										<?php \esc_html_e( 'Should work with most platforms.', 'activitypub' ); ?>
 									</span>
 								</label>
 							</p>
-							<p>
-								<label>
-									<input type="radio" name="activitypub_object_type" id="activitypub_object_type" value="wordpress-post-format" <?php echo \checked( 'wordpress-post-format', \get_option( 'activitypub_object_type', ACTIVITYPUB_DEFAULT_OBJECT_TYPE ) ); ?> />
-									<?php \esc_html_e( 'WordPress Post-Format', 'activitypub' ); ?>
-									-
-									<span class="description">
-										<?php \esc_html_e( 'Maps the WordPress Post-Format to the ActivityPub Object Type.', 'activitypub' ); ?>
-									</span>
-								</label>
-							</p>
-
 						</td>
 					</tr>
 					<tr <?php echo 'wordpress-post-format' === \get_option( 'activitypub_object_type', ACTIVITYPUB_DEFAULT_OBJECT_TYPE ) ? 'style="display: none"' : ''; ?>>
@@ -94,46 +102,6 @@
 						</th>
 						<td>
 							<p><strong><?php \esc_html_e( 'These settings only apply if you use the "Note" Object-Type setting above.', 'activitypub' ); ?></strong></p>
-							<p>
-								<label for="activitypub_post_content_type_title_link">
-									<input type="radio" name="activitypub_post_content_type" id="activitypub_post_content_type_title_link" value="title" <?php echo \checked( 'title', \get_option( 'activitypub_post_content_type', 'content' ) ); ?> />
-									<?php \esc_html_e( 'Title and link', 'activitypub' ); ?>
-									-
-									<span class="description">
-										<?php \esc_html_e( 'Only the title and a link.', 'activitypub' ); ?>
-									</span>
-								</label>
-							</p>
-							<p>
-								<label for="activitypub_post_content_type_excerpt">
-									<input type="radio" name="activitypub_post_content_type" id="activitypub_post_content_type_excerpt" value="excerpt" <?php echo \checked( 'excerpt', \get_option( 'activitypub_post_content_type', 'content' ) ); ?> />
-									<?php \esc_html_e( 'Excerpt', 'activitypub' ); ?>
-									-
-									<span class="description">
-										<?php \esc_html_e( 'A content summary without markup (truncated if no excerpt is provided).', 'activitypub' ); ?>
-									</span>
-								</label>
-							</p>
-							<p>
-								<label for="activitypub_post_content_type_content">
-									<input type="radio" name="activitypub_post_content_type" id="activitypub_post_content_type_content" value="content" <?php echo \checked( 'content', \get_option( 'activitypub_post_content_type', 'content' ) ); ?> />
-									<?php \esc_html_e( 'Content (default)', 'activitypub' ); ?>
-									-
-									<span class="description">
-										<?php \esc_html_e( 'The full content.', 'activitypub' ); ?>
-									</span>
-								</label>
-							</p>
-							<p>
-								<label for="activitypub_post_content_type_custom">
-									<input type="radio" name="activitypub_post_content_type" id="activitypub_post_content_type_custom" value="custom" <?php echo \checked( 'custom', \get_option( 'activitypub_post_content_type', 'content' ) ); ?> />
-									<?php \esc_html_e( 'Custom', 'activitypub' ); ?>
-									-
-									<span class="description">
-										<?php \esc_html_e( 'Use the text area below, to customize your activities.', 'activitypub' ); ?>
-									</span>
-								</label>
-							</p>
 							<p>
 								<textarea name="activitypub_custom_post_content" id="activitypub_custom_post_content" rows="10" cols="50" class="large-text" placeholder="<?php echo wp_kses( ACTIVITYPUB_CUSTOM_POST_CONTENT, 'post' ); ?>"><?php echo esc_textarea( wp_kses( \get_option( 'activitypub_custom_post_content', ACTIVITYPUB_CUSTOM_POST_CONTENT ), 'post' ) ); ?></textarea>
 								<details>
@@ -231,7 +199,17 @@
 						</th>
 						<td>
 							<p>
-								<label><input type="checkbox" name="activitypub_use_opengraph" id="activitypub_use_opengraph" value="1" <?php echo \checked( '1', \get_option( 'activitypub_use_opengraph', '1' ) ); ?> /> <?php echo wp_kses( \__( 'Automatically add <code>&lt;meta name="fediverse:creator" /&gt;</code> tags for Authors and the Blog-User. You can read more about the feature on the <a href="https://blog.joinmastodon.org/2024/07/highlighting-journalism-on-mastodon/" target="_blank">Mastodon Blog</a>.', 'activitypub' ), 'post' ); ?></label>
+								<label>
+									<input type="checkbox" name="activitypub_use_opengraph" id="activitypub_use_opengraph" value="1" <?php echo \checked( '1', \get_option( 'activitypub_use_opengraph', '1' ) ); ?> />
+									<?php echo wp_kses( \__( 'Automatically add <code>&lt;meta name="fediverse:creator" /&gt;</code> tags for Authors and the Blog-User. You can read more about the feature on the <a href="https://blog.joinmastodon.org/2024/07/highlighting-journalism-on-mastodon/" target="_blank">Mastodon Blog</a>.', 'activitypub' ), 'post' ); ?>
+								</label>
+							</p>
+							<p>
+								<label for="activitypub_attribution_domains">
+									<?php esc_html_e( 'Websites allowed to credit you.', 'activitypub' ); ?>
+								</label>
+								<textarea id="activitypub_attribution_domains" name="activitypub_attribution_domains" class="large-text" cols="50" rows="5" placeholder="<?php echo \esc_textarea( \Activitypub\home_host() ); ?>"><?php echo esc_textarea( \get_option( 'activitypub_attribution_domains', \Activitypub\home_host() ) ); ?></textarea>
+								<?php esc_html_e( 'One per line. Protects from false attributions.', 'activitypub' ); ?>
 							</p>
 						</td>
 					</tr>

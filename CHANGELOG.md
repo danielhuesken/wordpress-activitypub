@@ -5,6 +5,135 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Dev - XXXX-XX-XX
+
+### Added
+
+* A `pre_activitypub_get_upload_baseurl` filter
+* Fediverse Preview on post-overview page
+* GitHub action to enforce Changelog updates
+* New contributors
+
+### Improved
+
+* Outsource Constants to a separate file
+* Better handling of `readme.txt` and `README.md`
+
+### Fixed
+
+* Fediverse preview showing `preferredUsername` instead of `name`
+* Fixed a potential fatal error in Enable Mastodon Apps
+
+## 4.2.1 - 2024-11-20
+
+### Added
+
+* Mastodon Apps status provider
+
+### Improved
+
+* Image-Handling
+* Have better checks if audience should be set or not
+
+### Fixed
+
+* Don't overwrite an existing `wp-tests-config.php`
+* PHPCS for phpunit files
+
+## 4.2.0 - 2024-11-15
+
+### Added
+
+* Unit tests for the `ActivityPub\Transformer\Post` class
+
+### Improved
+
+* Reuse constants once they're defined
+* "FEP-b2b8: Long-form Text" support
+* Admin notice for plain permalink settings is more user-friendly and actionable
+* Post-Formats support
+
+### Fixed
+
+* Do not display ActivityPub's user sub-menus to users who do not have the capabilities of writing posts
+* Proper margins for notices and font size for page title in settings screen
+* Ensure that `?author=0` resolves to blog user
+
+### Removed
+
+* Remove `meta` CLI command
+* Remove unneeded translation functions from CLI commands
+
+## 4.1.1 - 2024-11-10
+
+### Fixed
+
+* Only revert to URL if there is one
+* Migration
+
+## 4.1.0 - 2024-11-08
+
+### Added
+
+* Add custom Preview for "Fediverse"
+* Support `comment_previously_approved` setting
+
+### Fixed
+
+* Hide sticky posts that are not public
+
+### Improved
+
+* `activity_handle_undo` action
+* Add title to content if post is a `Note`
+* Fallback to blog-user if user is disabled
+
+## 4.0.2 - 2024-10-30
+
+### Fixed
+
+* Do not federate "Local" posts
+
+### Improved
+
+* Help-text for Content-Warning box
+
+## [4.0.1] - 2024-10-26
+
+### Fixed
+
+* Missing URL-Param handling in REST API
+* Seriously Simple Podcasting integration
+* Multiple small fixes
+
+### Improved
+
+* Provide contextual fallback for dynamic blocks
+
+## [4.0.0] - 2024-10-23
+
+### Added
+
+* Fire an action before a follower is removed
+* Make Intent-URL filterable
+* `title` attribute to link headers for better readability
+* Post "visibility" feature
+* Attribution-Domains support
+
+### Improved
+
+* Inbox validation
+* WordPress-Post-Type - Detection
+* Only validate POST params and do not fall back to GET params
+* ID handling for a better compatibility with caching plugins
+
+### Fixed
+
+* The "Shared Inbox" endpoint
+* Ensure that sticky_posts is an array
+* URLs and Hashtags in profiles were not converted
+* A lot of small improvements and fixes
+
 ## [3.3.3] - 2024-10-09
 
 ### Fixed
@@ -969,6 +1098,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * initial
 
+[4.2.1]: https://github.com/Automattic/wordpress-activitypub/compare/4.2.0...4.2.1
+[4.2.0]: https://github.com/Automattic/wordpress-activitypub/compare/4.1.1...4.2.0
+[4.1.1]: https://github.com/Automattic/wordpress-activitypub/compare/4.1.0...4.1.1
+[4.1.0]: https://github.com/Automattic/wordpress-activitypub/compare/4.0.2...4.1.0
+[4.0.2]: https://github.com/Automattic/wordpress-activitypub/compare/4.0.1...4.0.2
+[4.0.1]: https://github.com/Automattic/wordpress-activitypub/compare/4.0.0...4.0.1
+[4.0.0]: https://github.com/Automattic/wordpress-activitypub/compare/3.3.3...4.0.0
 [3.3.3]: https://github.com/Automattic/wordpress-activitypub/compare/3.3.2...3.3.3
 [3.3.2]: https://github.com/Automattic/wordpress-activitypub/compare/3.3.1...3.3.2
 [3.3.1]: https://github.com/Automattic/wordpress-activitypub/compare/3.3.0...3.3.1

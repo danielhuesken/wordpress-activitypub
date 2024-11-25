@@ -11,13 +11,14 @@ use WP_Query;
 
 use Activitypub\Signature;
 use Activitypub\Activity\Actor;
-use Activitypub\Collection\Users;
+use Activitypub\Collection\Actors;
 use Activitypub\Collection\Extra_Fields;
 
 use function Activitypub\esc_hashtag;
 use function Activitypub\is_single_user;
 use function Activitypub\is_blog_public;
 use function Activitypub\get_rest_url_by_path;
+use function Activitypub\get_attribution_domains;
 
 /**
  * Blog class.
@@ -51,7 +52,7 @@ class Blog extends Actor {
 	 *
 	 * @var int
 	 */
-	protected $_id = Users::BLOG_USER_ID; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore
+	protected $_id = Actors::BLOG_USER_ID; // phpcs:ignore PSR2.Classes.PropertyDeclaration.Underscore
 
 	/**
 	 * If the User is indexable.
@@ -113,7 +114,13 @@ class Blog extends Actor {
 	 * @return string The User ID.
 	 */
 	public function get_id() {
-		return $this->get_url();
+		$permalink = \get_option( 'activitypub_use_permalink_as_id_for_blog', false );
+
+		if ( $permalink ) {
+			return $this->get_url();
+		}
+
+		return \add_query_arg( 'author', $this->_id, \trailingslashit( \home_url() ) );
 	}
 
 	/**
@@ -529,5 +536,14 @@ class Blog extends Actor {
 	public function get_attachment() {
 		$extra_fields = Extra_Fields::get_actor_fields( $this->_id );
 		return Extra_Fields::fields_to_attachments( $extra_fields );
+	}
+
+	/**
+	 * Returns the website hosts allowed to credit this blog.
+	 *
+	 * @return array|null The attribution domains or null if not found.
+	 */
+	public function get_attribution_domains() {
+		return get_attribution_domains();
 	}
 }

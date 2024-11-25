@@ -1,9 +1,10 @@
-import { PluginDocumentSettingPanel } from '@wordpress/editor';
+import { PluginDocumentSettingPanel, PluginPreviewMenuItem } from '@wordpress/editor';
 import { registerPlugin } from '@wordpress/plugins';
 import { TextControl, RadioControl, __experimentalText as Text } from '@wordpress/components';
-import { Icon, notAllowed, globe, people } from '@wordpress/icons';
-import { useSelect } from '@wordpress/data';
+import { Icon, notAllowed, globe, people, external } from '@wordpress/icons';
+import { useSelect, select } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
+import { addQueryArgs } from '@wordpress/url';
 import { __ } from '@wordpress/i18n';
 
 
@@ -17,9 +18,8 @@ const EditorPlugin = () => {
 	const labelStyling = {
 		verticalAlign: "middle",
 		gap: "4px",
-		justifyContent:
-		"start", display:
-		"inline-flex",
+		justifyContent: "start",
+		display: "inline-flex",
 		alignItems: "center"
 	}
 
@@ -42,6 +42,7 @@ const EditorPlugin = () => {
 					setMeta( { ...meta, activitypub_content_warning: value } );
 				} }
 				placeholder={ __( 'Optional content warning', 'activitypub' ) }
+				help={ __( 'Content warnings do not change the content on your site, only in the fediverse.', 'activitypub' ) }
 			/>
 			<RadioControl
 				label={ __( 'Visibility', 'activitypub' ) }
@@ -61,4 +62,31 @@ const EditorPlugin = () => {
 	);
 }
 
+function onActivityPubPreview() {
+	const previewLink = select( 'core/editor' ).getEditedPostPreviewLink();
+	const fediversePreviewLink = addQueryArgs( previewLink, { activitypub: 'true' } );
+
+	window.open( fediversePreviewLink, '_blank' );
+}
+
+const EditorPreview = () => {
+	// check if post was saved
+	const post_status = useSelect( ( select ) => select( 'core/editor' ).getCurrentPost().status );
+
+	return (
+		<>
+			{ PluginPreviewMenuItem ? (
+				<PluginPreviewMenuItem
+					onClick={ () => onActivityPubPreview() }
+					icon={ external }
+					disabled={ post_status === 'auto-draft' }
+				>
+					{ __( '⁂ Fediverse preview', 'activitypub' ) }
+				</PluginPreviewMenuItem>
+			) : null }
+		</>
+	);
+};
+
 registerPlugin( 'activitypub-editor-plugin', { render: EditorPlugin } );
+registerPlugin( 'activitypub-editor-preview', { render: EditorPreview } );

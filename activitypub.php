@@ -3,7 +3,7 @@
  * Plugin Name: ActivityPub
  * Plugin URI: https://github.com/pfefferle/wordpress-activitypub/
  * Description: The ActivityPub protocol is a decentralized social networking protocol based upon the ActivityStreams 2.0 data format.
- * Version: 3.3.3
+ * Version: 4.2.2
  * Author: Matthias Pfefferle & Automattic
  * Author URI: https://automattic.com/
  * License: MIT
@@ -19,43 +19,17 @@ namespace Activitypub;
 
 use WP_CLI;
 
-require_once __DIR__ . '/includes/compat.php';
-require_once __DIR__ . '/includes/functions.php';
-
-\define( 'ACTIVITYPUB_PLUGIN_VERSION', '3.3.3' );
-
-/**
- * Initialize the plugin constants.
- */
-\defined( 'ACTIVITYPUB_REST_NAMESPACE' ) || \define( 'ACTIVITYPUB_REST_NAMESPACE', 'activitypub/1.0' );
-\defined( 'ACTIVITYPUB_EXCERPT_LENGTH' ) || \define( 'ACTIVITYPUB_EXCERPT_LENGTH', 400 );
-\defined( 'ACTIVITYPUB_NOTE_LENGTH' ) || \define( 'ACTIVITYPUB_NOTE_LENGTH', 400 );
-\defined( 'ACTIVITYPUB_SHOW_PLUGIN_RECOMMENDATIONS' ) || \define( 'ACTIVITYPUB_SHOW_PLUGIN_RECOMMENDATIONS', true );
-\defined( 'ACTIVITYPUB_MAX_IMAGE_ATTACHMENTS' ) || \define( 'ACTIVITYPUB_MAX_IMAGE_ATTACHMENTS', 3 );
-\defined( 'ACTIVITYPUB_HASHTAGS_REGEXP' ) || \define( 'ACTIVITYPUB_HASHTAGS_REGEXP', '(?:(?<=\s)|(?<=<p>)|(?<=<br>)|^)#([A-Za-z0-9_]+)(?:(?=\s|[[:punct:]]|$))' );
-\defined( 'ACTIVITYPUB_USERNAME_REGEXP' ) || \define( 'ACTIVITYPUB_USERNAME_REGEXP', '(?:([A-Za-z0-9\._-]+)@((?:[A-Za-z0-9_-]+\.)+[A-Za-z]+))' );
-\defined( 'ACTIVITYPUB_URL_REGEXP' ) || \define( 'ACTIVITYPUB_URL_REGEXP', '(https?:|www\.)\S+[\w\/]' );
-\defined( 'ACTIVITYPUB_CUSTOM_POST_CONTENT' ) || \define( 'ACTIVITYPUB_CUSTOM_POST_CONTENT', "<h2>[ap_title]</h2>\n\n[ap_content]\n\n[ap_hashtags]\n\n[ap_shortlink]" );
-\defined( 'ACTIVITYPUB_AUTHORIZED_FETCH' ) || \define( 'ACTIVITYPUB_AUTHORIZED_FETCH', false );
-\defined( 'ACTIVITYPUB_DISABLE_REWRITES' ) || \define( 'ACTIVITYPUB_DISABLE_REWRITES', false );
-\defined( 'ACTIVITYPUB_DISABLE_INCOMING_INTERACTIONS' ) || \define( 'ACTIVITYPUB_DISABLE_INCOMING_INTERACTIONS', false );
-// Disable reactions like `Like` and `Announce` by default.
-\defined( 'ACTIVITYPUB_DISABLE_REACTIONS' ) || \define( 'ACTIVITYPUB_DISABLE_REACTIONS', true );
-\defined( 'ACTIVITYPUB_DISABLE_OUTGOING_INTERACTIONS' ) || \define( 'ACTIVITYPUB_DISABLE_OUTGOING_INTERACTIONS', false );
-\defined( 'ACTIVITYPUB_SHARED_INBOX_FEATURE' ) || \define( 'ACTIVITYPUB_SHARED_INBOX_FEATURE', false );
-\defined( 'ACTIVITYPUB_SEND_VARY_HEADER' ) || \define( 'ACTIVITYPUB_SEND_VARY_HEADER', false );
-\defined( 'ACTIVITYPUB_DEFAULT_OBJECT_TYPE' ) || \define( 'ACTIVITYPUB_DEFAULT_OBJECT_TYPE', 'note' );
-
-// Post visibility constants.
-\define( 'ACTIVITYPUB_CONTENT_VISIBILITY_PUBLIC', '' );
-\define( 'ACTIVITYPUB_CONTENT_VISIBILITY_QUIET_PUBLIC', 'quiet_public' );
-\define( 'ACTIVITYPUB_CONTENT_VISIBILITY_LOCAL', 'local' );
+\define( 'ACTIVITYPUB_PLUGIN_VERSION', '4.2.2' );
 
 // Plugin related constants.
 \define( 'ACTIVITYPUB_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 \define( 'ACTIVITYPUB_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
-\define( 'ACTIVITYPUB_PLUGIN_FILE', plugin_dir_path( __FILE__ ) . '/' . basename( __FILE__ ) );
+\define( 'ACTIVITYPUB_PLUGIN_FILE', ACTIVITYPUB_PLUGIN_DIR . basename( __FILE__ ) );
 \define( 'ACTIVITYPUB_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+
+require_once __DIR__ . '/includes/compat.php';
+require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/constants.php';
 
 /**
  * Initialize REST routes.
@@ -161,7 +135,7 @@ function plugin_settings_link( $actions ) {
 
 	return \array_merge( $settings_link, $actions );
 }
-\add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), __NAMESPACE__ . '\plugin_settings_link' );
+\add_filter( 'plugin_action_links_' . ACTIVITYPUB_PLUGIN_BASENAME, __NAMESPACE__ . '\plugin_settings_link' );
 
 \register_activation_hook(
 	__FILE__,
@@ -193,10 +167,14 @@ require_once __DIR__ . '/integration/load.php';
 /**
  * `get_plugin_data` wrapper.
  *
+ * @deprecated 4.2.0 Use `get_plugin_data` instead.
+ *
  * @param array $default_headers Optional. The default plugin headers. Default empty array.
  * @return array The plugin metadata array.
  */
 function get_plugin_meta( $default_headers = array() ) {
+	_deprecated_function( __FUNCTION__, '4.2.0', 'get_plugin_data' );
+
 	if ( ! $default_headers ) {
 		$default_headers = array(
 			'Name'        => 'Plugin Name',
@@ -219,15 +197,13 @@ function get_plugin_meta( $default_headers = array() ) {
 
 /**
  * Plugin Version Number used for caching.
+ *
+ * @deprecated 4.2.0 Use constant ACTIVITYPUB_PLUGIN_VERSION directly.
  */
 function get_plugin_version() {
-	if ( \defined( 'ACTIVITYPUB_PLUGIN_VERSION' ) ) {
-		return ACTIVITYPUB_PLUGIN_VERSION;
-	}
+	_deprecated_function( __FUNCTION__, '4.2.0', 'ACTIVITYPUB_PLUGIN_VERSION' );
 
-	$meta = get_plugin_meta( array( 'Version' => 'Version' ) );
-
-	return $meta['Version'];
+	return ACTIVITYPUB_PLUGIN_VERSION;
 }
 
 // Check for CLI env, to add the CLI commands.
@@ -236,7 +212,7 @@ if ( defined( 'WP_CLI' ) && WP_CLI ) {
 		'activitypub',
 		'\Activitypub\Cli',
 		array(
-			'shortdesc' => __( 'ActivityPub related commands: Meta-Infos, Delete and soon Self-Destruct.', 'activitypub' ),
+			'shortdesc' => 'ActivityPub related commands to manage plugin functionality and the federation of posts and comments.',
 		)
 	);
 }

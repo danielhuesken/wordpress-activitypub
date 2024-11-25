@@ -1,9 +1,9 @@
 === ActivityPub ===
-Contributors: automattic, pfefferle, mediaformat, mattwiebe, akirk, jeherve, nuriapena, cavalierlife
+Contributors: automattic, pfefferle, mattwiebe, obenland, akirk, jeherve, mediaformat, nuriapena, cavalierlife, andremenrath
 Tags: OStatus, fediverse, activitypub, activitystream
 Requires at least: 5.5
-Tested up to: 6.6
-Stable tag: 3.3.3
+Tested up to: 6.7
+Stable tag: 4.2.1
 Requires PHP: 7.0
 License: MIT
 License URI: http://opensource.org/licenses/MIT
@@ -13,6 +13,8 @@ The ActivityPub protocol is a decentralized social networking protocol based upo
 == Description ==
 
 Enter the fediverse with **ActivityPub**, broadcasting your blog to a wider audience! Attract followers, deliver updates, and receive comments from a diverse user base of **ActivityPub**\-compliant platforms.
+
+https://www.youtube.com/watch?v=QzYozbNneVc
 
 With the ActivityPub plugin installed, your WordPress blog itself function as a federated profile, along with profiles for each author. For instance, if your website is `example.com`, then the blog-wide profile can be found at `@example.com@example.com`, and authors like Jane and Bob would have their individual profiles at `@jane@example.com` and `@bobz@example.com`, respectively.
 
@@ -55,24 +57,6 @@ So what’s the process?
 = tl;dr =
 
 This plugin connects your WordPress blog to popular social platforms like Mastodon, making your posts more accessible to a wider audience. Once installed, your blog can be followed by users on these platforms, allowing them to receive your new posts in their feeds.
-
-= What is the status of this plugin? =
-
-Implemented:
-
-* blog profile pages (JSON representation)
-* author profile pages (JSON representation)
-* custom links
-* functional inbox/outbox
-* follow (accept follows)
-* share posts
-* receive comments/reactions
-* signature verification
-* threaded comments support
-
-To implement:
-
-* replace shortcodes with blocks for layout
 
 = What is "ActivityPub for WordPress" =
 
@@ -148,83 +132,77 @@ For reasons of data protection, it is not possible to see the followers of other
 
 == Changelog ==
 
-= 3.3.3 =
+= Dev =
 
-* Fixed: Sanitization callback
-* Improved: A lot of PHPCS cleanups
-* Improved: Prepare multi-lang support
+* Added: A `pre_activitypub_get_upload_baseurl` filter
+* Added: Fediverse Preview on post-overview page
+* Added: GitHub action to enforce Changelog updates
+* Added: New contributors
+* Improved: Outsource Constants to a separate file
+* Improved: Better handling of `readme.txt` and `README.md`
+* Fixed: Fediverse preview showing `preferredUsername` instead of `name`
+* Fixed: Potential fatal error in Enable Mastodon Apps
 
-= 3.3.2 =
+= 4.2.1 =
 
-* Fixed: Keep priority of Icons
-* Fixed: Fatal error if remote-object is `WP_Error`
-* Improved: Adopt WordPress PHP Coding Standards
+* Added: Mastodon Apps status provider
+* Improved: Image-Handling
+* Improved: Have better checks if audience should be set or not
+* Fixed: Don't overwrite an existing `wp-tests-config.php`
+* Fixed: PHPCS for phpunit files
 
-= 3.3.1 =
+= 4.2.0 =
 
-* Fixed: PHP Warnings
-* Fixed: PHPCS issues
+* Added: Unit tests for the `ActivityPub\Transformer\Post` class
+* Improved: Reuse constants once they're defined
+* Improved: "FEP-b2b8: Long-form Text" support
+* Improved: Admin notice for plain permalink settings is more user-friendly and actionable
+* Improved: Post-Formats support
+* Fixed: Do not display ActivityPub's user sub-menus to users who do not have the capabilities of writing posts.
+* Fixed: Proper margins for notices and font size for page title in settings screen.
+* Fixed: Ensure that `?author=0` resolves to blog user
 
-= 3.3.0 =
+= 4.1.1 =
 
-* Added: Content warning support
-* Added: Replies collection
-* Added: Enable Mastodon Apps: support profile editing, blog user
-* Added: Follow Me/Followers: add inherit mode for dynamic templating
-* Fixed: Cropping Header Images for users without the 'customize' capability
-* Improved: OpenSSL handling
-* Improved: Added missing @ in Follow-Me block
+* Fixed: Only revert to URL if there is one
+* Fixed: Migration
 
-= 3.2.5 =
+= 4.1.0 =
 
-* Fixed: Enable Mastodon Apps check
-* Fixed: Fediverse replies were not threaded properly
+* Added: Add custom Preview for "Fediverse"
+* Added: Support `comment_previously_approved` setting
+* Fixed: Hide sticky posts that are not public
+* Improved: `activity_handle_undo` action
+* Improved: Add title to content if post is a `Note`
+* Improved: Fallback to blog-user if user is disabled
 
-= 3.2.4 =
+= 4.0.2 =
 
+* Fixed: Do not federate "Local" posts
+* Improved: Help-text for Content-Warning box
+
+= 4.0.1 =
+
+* Fixed: Missing URL-Param handling in REST API
+* Fixed: Seriously Simple Podcasting integration
+* Fixed: Multiple small fixes
+* Improved: Provide contextual fallback for dynamic blocks
+
+= 4.0.0 =
+
+* Added: Fire an action before a follower is removed
+* Added: Make Intent-URL filterable
+* Added: `title` attribute to link headers for better readability
+* Added: Post "visibility" feature
+* Added: Attribution-Domains support
 * Improved: Inbox validation
-
-= 3.2.3 =
-
-* Fixed: NodeInfo endpoint
-* Fixed: (Temporarily) Remove HTML from `summary`, because it seems that Mastodon has issues with it
-* Improved: Accessibility for Reply-Context
-* Improved: Use `Article` Object-Type as default
-
-= 3.2.2 =
-
-* Fixed: Extra-Fields check
-
-= 3.2.1 =
-
-* Fixed: Use `Excerpt` for Podcast Episodes
-
-= 3.2.0 =
-
-* Added: Support for Seriously Simple Podcasting
-* Added: Blog extra fields
-* Added: Support "read more" for Activity-Summary
-* Added: `Like` and `Announce` (Boost) handler
-* Added: Simple Remote-Reply endpoint
-* Added: "Stream" Plugin support
-* Added: New Fediverse symbol
-* Improved: Replace hashtags, urls and mentions in summary with links
-* Improved: Hide Bookmarklet if site does not support Blocks
-* Fixed: Link detection for extra fields when spaces after the link and fix when two links in the content
-* Fixed: `Undo` for `Likes` and `Announces`
-* Fixed: Show Avatars on `Likes` and `Announces`
-* Fixed: Remove proprietary WebFinger resource
-* Fixed: Wrong followers URL in "to" attribute of posts
-
-= 3.1.0 =
-
-* Added: `menu_order` to `ap_extrafield` so that user can decide in with order they will be displayed
-* Added: Line brakes to user biography
-* Added: Blueprint
-* Fixed: Changed missing `activitypub_user_description` to `activitypub_description`
-* Fixed: Undefined `get_sample_permalink`
-* Fixed: Only send Update for previously-published posts
-* Improved: Simplified WebFinger code
+* Improved: WordPress-Post-Type - Detection
+* Improved: Only validate POST params and do not fall back to GET params
+* Improved: ID handling for a better compatibility with caching plugins
+* Fixed: The "Shared Inbox" endpoint
+* Fixed: Ensure that sticky_posts is an array
+* Fixed: URLs and Hashtags in profiles were not converted
+* Fixed: A lot of small improvements and fixes
 
 See full Changelog on [GitHub](https://github.com/Automattic/wordpress-activitypub/blob/trunk/CHANGELOG.md).
 

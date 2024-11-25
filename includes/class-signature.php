@@ -11,7 +11,7 @@ use WP_Error;
 use DateTime;
 use DateTimeZone;
 use WP_REST_Request;
-use Activitypub\Collection\Users;
+use Activitypub\Collection\Actors;
 
 /**
  * ActivityPub Signature Class.
@@ -193,7 +193,7 @@ class Signature {
 	 * @return string The signature.
 	 */
 	public static function generate_signature( $user_id, $http_method, $url, $date, $digest = null ) {
-		$user = Users::get_by_id( $user_id );
+		$user = Actors::get_by_id( $user_id );
 		$key  = self::get_private_key_for( $user->get__id() );
 
 		$url_parts = \wp_parse_url( $url );
@@ -223,7 +223,7 @@ class Signature {
 		\openssl_sign( $signed_string, $signature, $key, \OPENSSL_ALGO_SHA256 );
 		$signature = \base64_encode( $signature ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 
-		$key_id = $user->get_url() . '#main-key';
+		$key_id = $user->get_id() . '#main-key';
 
 		if ( ! empty( $digest ) ) {
 			return \sprintf( 'keyId="%s",algorithm="rsa-sha256",headers="(request-target) host date digest",signature="%s"', $key_id, $signature );

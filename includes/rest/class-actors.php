@@ -11,7 +11,7 @@ use WP_REST_Server;
 use WP_REST_Request;
 use WP_REST_Response;
 use Activitypub\Webfinger;
-use Activitypub\Collection\Users as User_Collection;
+use Activitypub\Collection\Actors as User_Collection;
 
 use function Activitypub\is_activitypub_request;
 
@@ -41,7 +41,6 @@ class Actors {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( self::class, 'get' ),
-					'args'                => self::request_parameters(),
 					'permission_callback' => '__return_true',
 				),
 			)
@@ -137,25 +136,5 @@ class Actors {
 			),
 			200
 		);
-	}
-
-	/**
-	 * The supported parameters.
-	 *
-	 * @return array List of parameters,
-	 */
-	public static function request_parameters() {
-		$params = array();
-
-		$params['page'] = array(
-			'type' => 'string',
-		);
-
-		$params['user_id'] = array(
-			'required' => true,
-			'type'     => 'string',
-		);
-
-		return $params;
 	}
 }

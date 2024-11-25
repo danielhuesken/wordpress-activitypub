@@ -10,7 +10,7 @@ namespace Activitypub\Rest;
 use stdClass;
 use WP_REST_Server;
 use WP_REST_Response;
-use Activitypub\Collection\Users as User_Collection;
+use Activitypub\Collection\Actors as User_Collection;
 use Activitypub\Collection\Followers as Follower_Collection;
 
 use function Activitypub\get_rest_url_by_path;
@@ -102,7 +102,7 @@ class Followers {
 				if ( 'full' === $context ) {
 					return $item->to_array( false );
 				}
-				return $item->get_url();
+				return $item->get_id();
 			},
 			$data['followers']
 		);
@@ -136,11 +136,6 @@ class Followers {
 			'type'    => 'string',
 			'default' => 'desc',
 			'enum'    => array( 'asc', 'desc' ),
-		);
-
-		$params['user_id'] = array(
-			'required' => true,
-			'type'     => 'string',
 		);
 
 		$params['context'] = array(

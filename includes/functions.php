@@ -10,7 +10,8 @@ namespace Activitypub;
 use WP_Error;
 use Activitypub\Activity\Activity;
 use Activitypub\Collection\Followers;
-use Activitypub\Collection\Users;
+use Activitypub\Collection\Actors;
+use Activitypub\Transformer\Post;
 
 /**
  * Returns the ActivityPub default JSON-context.
@@ -186,22 +187,19 @@ function count_followers( $user_id ) {
  *
  * @param string $url Permalink to check.
  *
- * @return int User ID, or 0 on failure.
+ * @return int|null User ID, or null on failure.
  */
 function url_to_authorid( $url ) {
 	global $wp_rewrite;
 
 	// Check if url hase the same host.
 	if ( \wp_parse_url( \home_url(), \PHP_URL_HOST ) !== \wp_parse_url( $url, \PHP_URL_HOST ) ) {
-		return 0;
+		return null;
 	}
 
 	// First, check to see if there is a 'author=N' to match against.
 	if ( \preg_match( '/[?&]author=(\d+)/i', $url, $values ) ) {
-		$id = \absint( $values[1] );
-		if ( $id ) {
-			return $id;
-		}
+		return \absint( $values[1] );
 	}
 
 	// Check to see if we are using rewrite rules.
@@ -209,7 +207,7 @@ function url_to_authorid( $url ) {
 
 	// Not using rewrite rules, and 'author=N' method failed, so we're out of options.
 	if ( empty( $rewrite ) ) {
-		return 0;
+		return null;
 	}
 
 	// Generate rewrite rule for the author url.
@@ -224,7 +222,7 @@ function url_to_authorid( $url ) {
 		}
 	}
 
-	return 0;
+	return null;
 }
 
 /**
@@ -437,11 +435,11 @@ function is_user_disabled( $user_id ) {
 
 	switch ( $user_id ) {
 		// if the user is the application user, it's always enabled.
-		case \Activitypub\Collection\Users::APPLICATION_USER_ID:
+		case \Activitypub\Collection\Actors::APPLICATION_USER_ID:
 			$disabled = false;
 			break;
 		// if the user is the blog user, it's only enabled in single-user mode.
-		case \Activitypub\Collection\Users::BLOG_USER_ID:
+		case \Activitypub\Collection\Actors::BLOG_USER_ID:
 			if ( is_user_type_disabled( 'blog' ) ) {
 				$disabled = true;
 				break;
@@ -504,7 +502,7 @@ function is_user_type_disabled( $type ) {
 				break;
 			}
 
-			if ( '1' !== \get_option( 'activitypub_enable_blog_user', '0' ) ) {
+			if ( ACTIVITYPUB_ACTOR_MODE === \get_option( 'activitypub_actor_mode', ACTIVITYPUB_ACTOR_MODE ) ) {
 				$disabled = true;
 				break;
 			}
@@ -524,7 +522,7 @@ function is_user_type_disabled( $type ) {
 				break;
 			}
 
-			if ( '1' !== \get_option( 'activitypub_enable_users', '1' ) ) {
+			if ( ACTIVITYPUB_BLOG_MODE === \get_option( 'activitypub_actor_mode', ACTIVITYPUB_ACTOR_MODE ) ) {
 				$disabled = true;
 				break;
 			}
@@ -729,7 +727,7 @@ function get_active_users( $duration = 1 ) {
 	}
 
 	// If blog user is disabled.
-	if ( is_user_disabled( Users::BLOG_USER_ID ) ) {
+	if ( is_user_disabled( Actors::BLOG_USER_ID ) ) {
 		return (int) $count;
 	}
 
@@ -761,7 +759,7 @@ function get_total_users() {
 	}
 
 	// If blog user is disabled.
-	if ( is_user_disabled( Users::BLOG_USER_ID ) ) {
+	if ( is_user_disabled( Actors::BLOG_USER_ID ) ) {
 		return (int) $users;
 	}
 
@@ -1364,6 +1362,41 @@ function get_content_warning( $post_id ) {
 }
 
 /**
+ * Get the ActivityPub ID of a User by the WordPress User ID.
+ *
+ * @param int $id The WordPress User ID.
+ *
+ * @return string The ActivityPub ID (a URL) of the User.
+ */
+function get_user_id( $id ) {
+	$user = Actors::get_by_id( $id );
+
+	if ( ! $user ) {
+		return false;
+	}
+
+	return $user->get_id();
+}
+
+/**
+ * Get the ActivityPub ID of a Post by the WordPress Post ID.
+ *
+ * @param int $id The WordPress Post ID.
+ *
+ * @return string The ActivityPub ID (a URL) of the Post.
+ */
+function get_post_id( $id ) {
+	$post = get_post( $id );
+
+	if ( ! $post ) {
+		return false;
+	}
+
+	$transformer = new Post( $post );
+	return $transformer->get_id();
+}
+
+/**
  * Check if a URL is from the same domain as the site.
  *
  * @param string $url The URL to check.
@@ -1378,8 +1411,7 @@ function is_same_domain( $url ) {
 	}
 
 	$remote = normalize_host( $remote );
-	$self   = \wp_parse_url( \home_url(), PHP_URL_HOST );
-	$self   = normalize_host( $self );
+	$self   = normalize_host( home_host() );
 
 	return $remote === $self;
 }
@@ -1409,4 +1441,59 @@ function get_content_visibility( $post_id ) {
 	}
 
 	return \apply_filters( 'activitypub_content_visibility', $_visibility, $post );
+}
+
+/**
+ * Retrieves the Host for the current site where the front end is accessible.
+ *
+ * @return string The host for the current site.
+ */
+function home_host() {
+	return \wp_parse_url( \home_url(), PHP_URL_HOST );
+}
+
+/**
+ * Returns the website hosts allowed to credit this blog.
+ *
+ * @return array|null The attribution domains or null if not found.
+ */
+function get_attribution_domains() {
+	if ( '1' !== \get_option( 'activitypub_use_opengraph', '1' ) ) {
+		return null;
+	}
+
+	$domains = \get_option( 'activitypub_attribution_domains', home_host() );
+	$domains = explode( PHP_EOL, $domains );
+
+	if ( ! $domains ) {
+		$domains = null;
+	}
+
+	return $domains;
+}
+
+/**
+ * Get the base URL for uploads.
+ *
+ * @return string The upload base URL.
+ */
+function get_upload_baseurl() {
+	/**
+	 * Early filter to allow plugins to set the upload base URL.
+	 *
+	 * @param string|false $maybe_upload_dir The upload base URL or false if not set.
+	 */
+	$maybe_upload_dir = apply_filters( 'pre_activitypub_get_upload_baseurl', false );
+	if ( false !== $maybe_upload_dir ) {
+		return $maybe_upload_dir;
+	}
+
+	$upload_dir = \wp_get_upload_dir();
+
+	/**
+	 * Filters the upload base URL.
+	 *
+	 * @param string \wp_get_upload_dir()['baseurl'] The upload base URL.
+	 */
+	return apply_filters( 'activitypub_get_upload_baseurl', $upload_dir['baseurl'] );
 }

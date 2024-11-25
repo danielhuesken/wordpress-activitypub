@@ -7,7 +7,7 @@
 
 namespace Activitypub\Integration;
 
-use Activitypub\Collection\Users as User_Collection;
+use Activitypub\Collection\Actors as User_Collection;
 
 use function Activitypub\get_rest_url_by_path;
 
@@ -43,13 +43,16 @@ class Webfinger {
 
 		$jrd['subject'] = sprintf( 'acct:%s', $user->get_webfinger() );
 
+		$jrd['aliases'][] = $user->get_id();
 		$jrd['aliases'][] = $user->get_url();
 		$jrd['aliases'][] = $user->get_alternate_url();
+		$jrd['aliases']   = array_unique( $jrd['aliases'] );
+		$jrd['aliases']   = array_values( $jrd['aliases'] );
 
 		$jrd['links'][] = array(
 			'rel'  => 'self',
 			'type' => 'application/activity+json',
-			'href' => $user->get_url(),
+			'href' => $user->get_id(),
 		);
 
 		$jrd['links'][] = array(
@@ -76,25 +79,27 @@ class Webfinger {
 		}
 
 		$aliases = array(
+			$user->get_id(),
 			$user->get_url(),
 			$user->get_alternate_url(),
 		);
 
 		$aliases = array_unique( $aliases );
+		$aliases = array_values( $aliases );
 
 		$profile = array(
 			'subject' => sprintf( 'acct:%s', $user->get_webfinger() ),
-			'aliases' => array_values( array_unique( $aliases ) ),
+			'aliases' => $aliases,
 			'links'   => array(
 				array(
 					'rel'  => 'self',
 					'type' => 'application/activity+json',
-					'href' => $user->get_url(),
+					'href' => $user->get_id(),
 				),
 				array(
 					'rel'  => 'http://webfinger.net/rel/profile-page',
 					'type' => 'text/html',
-					'href' => $user->get_url(),
+					'href' => $user->get_id(),
 				),
 				array(
 					'rel'      => 'http://ostatus.org/schema/1.0/subscribe',
