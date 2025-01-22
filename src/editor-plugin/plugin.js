@@ -1,11 +1,24 @@
 import { PluginDocumentSettingPanel, PluginPreviewMenuItem } from '@wordpress/editor';
 import { registerPlugin } from '@wordpress/plugins';
-import { TextControl, RadioControl, __experimentalText as Text } from '@wordpress/components';
-import { Icon, notAllowed, globe, people, external } from '@wordpress/icons';
+import { TextControl, RadioControl, CheckboxControl, __experimentalText as Text } from '@wordpress/components';
+import { Icon, globe, people, external } from '@wordpress/icons';
 import { useSelect, select } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
 import { addQueryArgs } from '@wordpress/url';
 import { __ } from '@wordpress/i18n';
+import { SVG, Path } from '@wordpress/primitives';
+
+// Defining our own because it's too new in @wordpress/icons
+// https://github.com/WordPress/gutenberg/blob/trunk/packages/icons/src/library/not-allowed.js
+const notAllowed = (
+	<SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+		<Path
+			fillRule="evenodd"
+			clipRule="evenodd"
+			d="M12 18.5A6.5 6.5 0 0 1 6.93 7.931l9.139 9.138A6.473 6.473 0 0 1 12 18.5Zm5.123-2.498a6.5 6.5 0 0 0-9.124-9.124l9.124 9.124ZM4 12a8 8 0 1 1 16 0 8 8 0 0 1-16 0Z"
+		/>
+	</SVG>
+);
 
 
 const EditorPlugin = () => {
@@ -30,6 +43,11 @@ const EditorPlugin = () => {
 		</Text>
 	);
 
+	// Don't show when editing sync blocks.
+	if ( 'wp_block' === postType ) {
+		return null;
+	}
+
 	return (
 		<PluginDocumentSettingPanel
 			name="activitypub"
@@ -44,10 +62,11 @@ const EditorPlugin = () => {
 				placeholder={ __( 'Optional content warning', 'activitypub' ) }
 				help={ __( 'Content warnings do not change the content on your site, only in the fediverse.', 'activitypub' ) }
 			/>
+
 			<RadioControl
 				label={ __( 'Visibility', 'activitypub' ) }
 				help={ __( 'This adjusts the visibility of a post in the fediverse, but note that it won\'t affect how the post appears on the blog.', 'activitypub' ) }
-				selected={ meta.activitypub_content_visibility ? meta.activitypub_content_visibility : 'public' }
+				selected={ meta?.activitypub_content_visibility || 'public' }
 				options={ [
 					{ label: labelWithIcon( __( 'Public', 'activitypub' ), globe ), value: 'public' },
 					{ label: labelWithIcon( __( 'Quiet public', 'activitypub' ), people ), value: 'quiet_public' },

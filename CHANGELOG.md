@@ -5,32 +5,167 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Dev - XXXX-XX-XX
+## [Untitled]
+
+### Changed
+
+* Improved content negotiation and AUTHORIZED_FETCH support for third-party plugins
+
+## [4.7.3] - 2025-01-21
+
+### Fixed
+
+* Flush rewrite rules after NodeInfo update.
+
+## [4.7.2] - 2025-01-17
+
+### Fixed
+
+* More robust handling of `_activityPubOptions` in scripts, using a `useOptions()` helper.
+* Flush post caches after Followers migration.
 
 ### Added
 
+* Support for WPML post locale
+
+### Removed
+
+* Built-in support for nodeinfo2. Use the [NodeInfo plugin](https://wordpress.org/plugins/nodeinfo/) instead.
+
+## [4.7.1] - 2025-01-14
+
+### Fixed
+
+* Missing migration
+
+## [4.7.0] - 2025-01-13
+
+### Added
+
+* Comment counts get updated when the plugin is activated/deactivated/deleted
+* Added a filter to make custom comment types manageable in WP.com Calypso
+
+### Changed
+
+* Hide ActivityPub post meta keys from the custom Fields UI
+* Bumped minimum required PHP version to 7.2
+
+### Fixed
+
+* Undefined array key warnings in various places
+* @-mentions in federated comments being displayed with a line break
+* Fetching replies from the same instance for Enable Mastodon Apps
+* Image captions not being included in the ActivityPub representation when the image is attached to the post
+
+### Changed
+* Print `_activityPubOptions` in the `wp_footer` action on the frontend.
+
+## [4.6.0] - 2024-12-20
+
+### Added
+
+* Add a filter to allow modifying the ActivityPub preview template
+* `@mentions` in the JSON representation of the reply
+* Add settings to enable/disable e-mail notifications for new followers and direct messages
+
+### Changed
+
+* Direct Messages: Test for the user being in the to field
+* Direct Messages: Improve HTML to e-mail text conversion
+* Better support for FSE color schemes
+
+### Fixed
+
+* Reactions: Provide a fallback for empty avatar URLs
+
+## [4.5.1] - 2024-12-18
+
+### Changed
+
+* Reactions block: Remove the `wp-block-editor` dependency for frontend views
+
+### Fixed
+
+* Direct Messages: Don't send notification for received public activities
+
+## [4.5.0] - 2024-12-17
+
+### Added
+
+* Reactions block to display likes and reposts
+* `icon` support for `Audio` and `Video` attachments
+* Send "new follower" emails
+* Send "direct message" emails
+* Account for custom comment types when calculating comment counts
+* Plugin upgrade routine that automatically updates comment counts
+
+### Changed
+
+* Likes and Reposts enabled by default
+* Email templates for Likes and Reposts
+* Improve Interactions moderation
+* Compatibility with Akismet
+* Comment type mapping for `Like` and `Announce`
+* Signature verification for API endpoints
+* Changed priority of Attachments, to favor `Image` over `Audio` and `Video`
+
+### Fixed
+
+* Empty `url` attributes in the Reply block no longer cause PHP warnings
+
+## [4.4.0] - 2024-12-09
+
+### Added
+
+* Setting to enable/disable Authorized-Fetch
+
+### Changed
+
+* Added screen reader text to the "Follow Me" block for improved accessibility
+* Added `media_type` support to Activity-Object-Transformers
+* Clarified settings page text around which users get Activitypub profiles
+* Add a filter to the REST API moderators list
+
+### Fixed
+
+* Prevent hex color codes in HTML attributes from being added as post tags
+* Fixed a typo in the custom post content settings
+* Prevent draft posts from being federated when bulk deleted
+
+## [4.3.0] - 2024-12-02
+
+### Added
+
+* Fix editor error when switching to edit a synced Pattern
 * A `pre_activitypub_get_upload_baseurl` filter
 * Fediverse Preview on post-overview page
 * GitHub action to enforce Changelog updates
 * New contributors
 
-### Improved
+### Changed
 
+* Basic enclosure validation
+* More User -> Actor renaming
 * Outsource Constants to a separate file
 * Better handling of `readme.txt` and `README.md`
 
 ### Fixed
 
 * Fediverse preview showing `preferredUsername` instead of `name`
+* A potential fatal error in Enable Mastodon Apps
+* Show Followers name instead of avatar on mobile view
 * Fixed a potential fatal error in Enable Mastodon Apps
+* Broken escaping of Usernames in Actor-JSON
+* Fixed missing attachement-type for enclosures
+* Prevention against self pings
 
-## 4.2.1 - 2024-11-20
+## [4.2.1] - 2024-11-20
 
 ### Added
 
 * Mastodon Apps status provider
 
-### Improved
+### Changed
 
 * Image-Handling
 * Have better checks if audience should be set or not
@@ -40,13 +175,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Don't overwrite an existing `wp-tests-config.php`
 * PHPCS for phpunit files
 
-## 4.2.0 - 2024-11-15
+## [4.2.0] - 2024-11-15
 
 ### Added
 
 * Unit tests for the `ActivityPub\Transformer\Post` class
 
-### Improved
+### Changed
 
 * Reuse constants once they're defined
 * "FEP-b2b8: Long-form Text" support
@@ -64,14 +199,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Remove `meta` CLI command
 * Remove unneeded translation functions from CLI commands
 
-## 4.1.1 - 2024-11-10
+## [4.1.1] - 2024-11-10
 
 ### Fixed
 
 * Only revert to URL if there is one
 * Migration
 
-## 4.1.0 - 2024-11-08
+## [4.1.0] - 2024-11-08
 
 ### Added
 
@@ -82,19 +217,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Hide sticky posts that are not public
 
-### Improved
+### Changed
 
 * `activity_handle_undo` action
 * Add title to content if post is a `Note`
 * Fallback to blog-user if user is disabled
 
-## 4.0.2 - 2024-10-30
+## [4.0.2] - 2024-10-30
 
 ### Fixed
 
 * Do not federate "Local" posts
 
-### Improved
+### Changed
 
 * Help-text for Content-Warning box
 
@@ -106,7 +241,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Seriously Simple Podcasting integration
 * Multiple small fixes
 
-### Improved
+### Changed
 
 * Provide contextual fallback for dynamic blocks
 
@@ -120,7 +255,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Post "visibility" feature
 * Attribution-Domains support
 
-### Improved
+### Changed
 
 * Inbox validation
 * WordPress-Post-Type - Detection
@@ -140,7 +275,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Sanitization callback
 
-### Improved
+### Changed
 
 * A lot of PHPCS cleanups
 * Prepare multi-lang support
@@ -152,7 +287,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Keep priority of Icons
 * Fatal error if remote-object is `WP_Error`
 
-### Improved
+### Changed
 
 * Adopt WordPress PHP Coding Standards
 
@@ -176,7 +311,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Cropping Header Images for users without the 'customize' capability
 
-### Improved
+### Changed
 
 * OpenSSL handling
 * Added missing @ in Follow-Me block
@@ -190,7 +325,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.2.4] - 2024-09-16
 
-### Improved
+### Changed
 
 * Inbox validation
 
@@ -201,7 +336,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * NodeInfo endpoint
 * (Temporarily) Remove HTML from `summary`, because it seems that Mastodon has issues with it
 
-### Improved
+### Changed
 
 * Accessibility for Reply-Context
 * Use `Article` Object-Type as default
@@ -230,7 +365,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * "Stream" Plugin support
 * New Fediverse symbol
 
-### Improved
+### Changed
 
 * Replace hashtags, URLs, and mentions in summary with links
 * Hide Bookmarklet if site does not support Blocks
@@ -251,7 +386,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Line breaks to user biography
 * Blueprint
 
-### Improved
+### Changed
 
 * Simplified WebFinger code
 
@@ -271,7 +406,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * ActivityPub link HTML/HTTP-Header support
 * Tag support for Actors (only auto-generated for now)
 
-### Improved
+### Changed
 
 * Add setting to enable/disable the `fediverse:creator` OGP tag.
 
@@ -292,7 +427,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Support for FEP-fb2a
 * CRUD support for Extra Fields
 
-### Improved
+### Changed
 
 * Remote-Follow UI and UX
 * Open Graph `fediverse:creator` implementation
@@ -473,7 +608,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Normalize attributes that can have mixed value types
 
-## [1.3.0] 2023-12-05
+## [1.3.0] - 2023-12-05
 
 ### Added
 
@@ -1098,6 +1233,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * initial
 
+[Unreleased]: https://github.com/Automattic/wordpress-activitypub/compare/4.7.3...trunk
+<!-- Add new release below and update "Unreleased" link -->
+[4.7.3]: https://github.com/Automattic/wordpress-activitypub/compare/4.7.2...4.7.3
+[4.7.2]: https://github.com/Automattic/wordpress-activitypub/compare/4.7.1...4.7.2
+[4.7.1]: https://github.com/Automattic/wordpress-activitypub/compare/4.7.0...4.7.1
+[4.7.0]: https://github.com/Automattic/wordpress-activitypub/compare/4.6.0...4.7.0
+[4.6.0]: https://github.com/Automattic/wordpress-activitypub/compare/4.5.1...4.6.0
+[4.5.1]: https://github.com/Automattic/wordpress-activitypub/compare/4.5.0...4.5.1
+[4.5.0]: https://github.com/Automattic/wordpress-activitypub/compare/4.4.0...4.5.0
+[4.4.0]: https://github.com/Automattic/wordpress-activitypub/compare/4.3.0...4.4.0
+[4.3.0]: https://github.com/Automattic/wordpress-activitypub/compare/4.2.1...4.3.0
 [4.2.1]: https://github.com/Automattic/wordpress-activitypub/compare/4.2.0...4.2.1
 [4.2.0]: https://github.com/Automattic/wordpress-activitypub/compare/4.1.1...4.2.0
 [4.1.1]: https://github.com/Automattic/wordpress-activitypub/compare/4.1.0...4.1.1

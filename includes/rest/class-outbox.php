@@ -11,7 +11,7 @@ use stdClass;
 use WP_REST_Server;
 use WP_REST_Response;
 use Activitypub\Activity\Activity;
-use Activitypub\Collection\Actors as User_Collection;
+use Activitypub\Collection\Actors;
 use Activitypub\Transformer\Factory;
 
 use function Activitypub\get_context;
@@ -45,7 +45,7 @@ class Outbox {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( self::class, 'user_outbox_get' ),
 					'args'                => self::request_parameters(),
-					'permission_callback' => '__return_true',
+					'permission_callback' => array( 'Activitypub\Rest\Server', 'verify_signature' ),
 				),
 			)
 		);
@@ -59,7 +59,7 @@ class Outbox {
 	 */
 	public static function user_outbox_get( $request ) {
 		$user_id = $request->get_param( 'user_id' );
-		$user    = User_Collection::get_by_various( $user_id );
+		$user    = Actors::get_by_various( $user_id );
 
 		if ( is_wp_error( $user ) ) {
 			return $user;

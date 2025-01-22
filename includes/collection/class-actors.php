@@ -24,14 +24,14 @@ use function Activitypub\is_user_disabled;
  */
 class Actors {
 	/**
-	 * The ID of the Blog Actor.
+	 * The ID of the Blog User.
 	 *
 	 * @var int
 	 */
 	const BLOG_USER_ID = 0;
 
 	/**
-	 * The ID of the Application Actor.
+	 * The ID of the Application User.
 	 *
 	 * @var int
 	 */
@@ -100,7 +100,7 @@ class Actors {
 				'meta_query'  => array(
 					'relation' => 'OR',
 					array(
-						'key'     => 'activitypub_user_identifier',
+						'key'     => '_activitypub_user_identifier',
 						'value'   => $username,
 						'compare' => 'LIKE',
 					),

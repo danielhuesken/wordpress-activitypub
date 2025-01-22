@@ -3,8 +3,8 @@ Contributors: automattic, pfefferle, mattwiebe, obenland, akirk, jeherve, mediaf
 Tags: OStatus, fediverse, activitypub, activitystream
 Requires at least: 5.5
 Tested up to: 6.7
-Stable tag: 4.2.1
-Requires PHP: 7.0
+Stable tag: 4.7.3
+Requires PHP: 7.2
 License: MIT
 License URI: http://opensource.org/licenses/MIT
 
@@ -70,7 +70,7 @@ In order for webfinger to work, it must be mapped to the root directory of the U
 
 Add the following to the .htaccess file in the root directory:
 
-	RedirectMatch "^\/\.well-known/(webfinger|nodeinfo|x-nodeinfo2)(.*)$" /blog/.well-known/$1$2
+	RedirectMatch "^\/\.well-known/(webfinger|nodeinfo)(.*)$" /blog/.well-known/$1$2
 
 Where 'blog' is the path to the subdirectory at which your blog resides.
 
@@ -107,7 +107,7 @@ The plugin uses PHP Constants to enable, disable or change its default behaviour
 * `ACTIVITYPUB_USERNAME_REGEXP` - Change the default regex to detect @-replies in a text. Default: `(?:([A-Za-z0-9\._-]+)@((?:[A-Za-z0-9_-]+\.)+[A-Za-z]+))`.
 * `ACTIVITYPUB_URL_REGEXP` - Change the default regex to detect urls in a text. Default: `(www.|http:|https:)+[^\s]+[\w\/]`.
 * `ACTIVITYPUB_CUSTOM_POST_CONTENT` - Change the default template for Activities. Default: `<strong>[ap_title]</strong>\n\n[ap_content]\n\n[ap_hashtags]\n\n[ap_shortlink]`.
-* `ACTIVITYPUB_AUTHORIZED_FETCH` - Enable AUTHORIZED_FETCH. Default: `false`.
+* `ACTIVITYPUB_AUTHORIZED_FETCH` - Enable AUTHORIZED_FETCH.
 * `ACTIVITYPUB_DISABLE_REWRITES` - Disable auto generation of `mod_rewrite` rules. Default: `false`.
 * `ACTIVITYPUB_DISABLE_INCOMING_INTERACTIONS` - Block incoming replies/comments/likes. Default: `false`.
 * `ACTIVITYPUB_DISABLE_OUTGOING_INTERACTIONS` - Disable outgoing replies/comments/likes. Default: `false`.
@@ -132,77 +132,97 @@ For reasons of data protection, it is not possible to see the followers of other
 
 == Changelog ==
 
-= Dev =
+= Unreleased =
+
+* Changed: Improved content negotiation and AUTHORIZED_FETCH support for third-party plugins
+
+= 4.7.3 =
+
+* Fixed: Flush rewrite rules after NodeInfo update.
+
+= 4.7.2 =
+
+* Added: Support for WPML post locale
+* Removed: Built-in support for nodeinfo2. Use the [NodeInfo plugin](https://wordpress.org/plugins/nodeinfo/) instead.
+* Fixed: More robust handling of `_activityPubOptions` in scripts, using a `useOptions()` helper.
+* Fixed: Flush post caches after Followers migration.
+
+= 4.7.1 =
+
+* Fixed: Missing migration
+
+= 4.7.0 =
+
+* Added: Comment counts get updated when the plugin is activated/deactivated/deleted
+* Added: A filter to make custom comment types manageable in WP.com Calypso
+* Changed: Hide ActivityPub post meta keys from the custom Fields UI
+* Changed: Bumped minimum required PHP version to 7.2
+* Changed: Print `_activityPubOptions` in the `wp_footer` action on the frontend.
+* Fixed: Undefined array key warnings in various places
+* Fixed: @-mentions in federated comments being displayed with a line break
+* Fixed: Fetching replies from the same instance for Enable Mastodon Apps
+* Fixed: Image captions not being included in the ActivityPub representation when the image is attached to the post
+
+= 4.6.0 =
+
+* Added: A filter to allow modifying the ActivityPub preview template
+* Added: `@mentions` in the JSON representation of the reply
+* Added: Settings to enable/disable e-mail notifications for new followers and direct messages
+* Changed: HTML to e-mail text conversion
+* Changed: Direct Messages: Test for the user being in the to field
+* Changed: Better support for FSE color schemes
+* Fixed: Reactions: Provide a fallback for empty avatar URLs
+
+= 4.5.1 =
+
+* Changed: Reactions block: Remove the `wp-block-editor` dependency for frontend views
+* Fixed: Direct Messages: Don't send notification for received public activities
+
+= 4.5.0 =
+
+* Changed: Reactions (likes and reposts) now enabled by default
+* Added: Reactions block to display likes and reposts
+* Added: `icon` support for `Audio` and `Video` attachments
+* Added: Send "new follower" emails
+* Added: Send "direct message" emails
+* Added: Account for custom comment types when calculating comment counts
+* Added: Plugin upgrade routine that automatically updates comment counts
+* Changed: Email templates for Likes and Reposts
+* Changed: Interactions moderation
+* Changed: Compatibility with Akismet
+* Changed: Comment type mapping for `Like` and `Announce`
+* Changed: Signature verification for API endpoints
+* Changed: Changed priority of Attachments, to favor `Image` over `Audio` and `Video`
+* Fixed: Empty `url` attributes in the Reply block no longer cause PHP warnings
+
+= 4.4.0 =
+
+* Added: Setting to enable/disable Authorized-Fetch
+* Changed: Added screen reader text for the "Follow Me" block for improved accessibility
+* Changed: Added `media_type` support to Activity-Object-Transformers
+* Changed: Clarified settings page text around which users get Activitypub profiles
+* Changed: Add a filter to the REST API moderators list
+* Fixed: Prevent hex color codes in HTML attributes from being added as post tags
+* Fixed: A typo in the custom post content settings
+* Fixed: Prevent draft posts from being federated when bulk deleted
+
+= 4.3.0 =
 
 * Added: A `pre_activitypub_get_upload_baseurl` filter
 * Added: Fediverse Preview on post-overview page
 * Added: GitHub action to enforce Changelog updates
 * Added: New contributors
-* Improved: Outsource Constants to a separate file
-* Improved: Better handling of `readme.txt` and `README.md`
+* Changed: Basic enclosure validation
+* Changed: More User -> Actor renaming
+* Changed: Outsource Constants to a separate file
+* Changed: Better handling of `readme.txt` and `README.md`
+* Fixed: editor error when switching to edit a synced Pattern
 * Fixed: Fediverse preview showing `preferredUsername` instead of `name`
 * Fixed: Potential fatal error in Enable Mastodon Apps
-
-= 4.2.1 =
-
-* Added: Mastodon Apps status provider
-* Improved: Image-Handling
-* Improved: Have better checks if audience should be set or not
-* Fixed: Don't overwrite an existing `wp-tests-config.php`
-* Fixed: PHPCS for phpunit files
-
-= 4.2.0 =
-
-* Added: Unit tests for the `ActivityPub\Transformer\Post` class
-* Improved: Reuse constants once they're defined
-* Improved: "FEP-b2b8: Long-form Text" support
-* Improved: Admin notice for plain permalink settings is more user-friendly and actionable
-* Improved: Post-Formats support
-* Fixed: Do not display ActivityPub's user sub-menus to users who do not have the capabilities of writing posts.
-* Fixed: Proper margins for notices and font size for page title in settings screen.
-* Fixed: Ensure that `?author=0` resolves to blog user
-
-= 4.1.1 =
-
-* Fixed: Only revert to URL if there is one
-* Fixed: Migration
-
-= 4.1.0 =
-
-* Added: Add custom Preview for "Fediverse"
-* Added: Support `comment_previously_approved` setting
-* Fixed: Hide sticky posts that are not public
-* Improved: `activity_handle_undo` action
-* Improved: Add title to content if post is a `Note`
-* Improved: Fallback to blog-user if user is disabled
-
-= 4.0.2 =
-
-* Fixed: Do not federate "Local" posts
-* Improved: Help-text for Content-Warning box
-
-= 4.0.1 =
-
-* Fixed: Missing URL-Param handling in REST API
-* Fixed: Seriously Simple Podcasting integration
-* Fixed: Multiple small fixes
-* Improved: Provide contextual fallback for dynamic blocks
-
-= 4.0.0 =
-
-* Added: Fire an action before a follower is removed
-* Added: Make Intent-URL filterable
-* Added: `title` attribute to link headers for better readability
-* Added: Post "visibility" feature
-* Added: Attribution-Domains support
-* Improved: Inbox validation
-* Improved: WordPress-Post-Type - Detection
-* Improved: Only validate POST params and do not fall back to GET params
-* Improved: ID handling for a better compatibility with caching plugins
-* Fixed: The "Shared Inbox" endpoint
-* Fixed: Ensure that sticky_posts is an array
-* Fixed: URLs and Hashtags in profiles were not converted
-* Fixed: A lot of small improvements and fixes
+* Fixed: Broken escaping of Usernames in Actor-JSON
+* Fixed: Show Followers name instead of avatar on mobile view
+* Fixed: Missing attachement-type for enclosures
+* Fixed: Prevention against self pings
 
 See full Changelog on [GitHub](https://github.com/Automattic/wordpress-activitypub/blob/trunk/CHANGELOG.md).
 

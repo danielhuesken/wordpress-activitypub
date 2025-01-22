@@ -10,7 +10,7 @@ namespace Activitypub\Rest;
 use stdClass;
 use WP_REST_Server;
 use WP_REST_Response;
-use Activitypub\Collection\Actors as User_Collection;
+use Activitypub\Collection\Actors;
 use Activitypub\Collection\Followers as Follower_Collection;
 
 use function Activitypub\get_rest_url_by_path;
@@ -43,7 +43,7 @@ class Followers {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( self::class, 'get' ),
 					'args'                => self::request_parameters(),
-					'permission_callback' => '__return_true',
+					'permission_callback' => array( 'Activitypub\Rest\Server', 'verify_signature' ),
 				),
 			)
 		);
@@ -58,7 +58,7 @@ class Followers {
 	 */
 	public static function get( $request ) {
 		$user_id = $request->get_param( 'user_id' );
-		$user    = User_Collection::get_by_various( $user_id );
+		$user    = Actors::get_by_various( $user_id );
 
 		if ( is_wp_error( $user ) ) {
 			return $user;

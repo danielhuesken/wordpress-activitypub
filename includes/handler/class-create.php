@@ -9,6 +9,8 @@ namespace Activitypub\Handler;
 
 use Activitypub\Collection\Interactions;
 
+use function Activitypub\is_self_ping;
+use function Activitypub\is_activity_reply;
 use function Activitypub\is_activity_public;
 use function Activitypub\object_id_to_comment;
 
@@ -44,8 +46,10 @@ class Create {
 	 */
 	public static function handle_create( $activity, $user_id, $activity_object = null ) {
 		// Check if Activity is public or not.
-		if ( ! is_activity_public( $activity ) ) {
-			// @todo maybe send email.
+		if (
+			! is_activity_public( $activity ) ||
+			! is_activity_reply( $activity )
+		) {
 			return;
 		}
 
@@ -62,6 +66,10 @@ class Create {
 			 * @param \Activitypub\Activity\Activity $activity_object The activity object.
 			 */
 			\do_action( 'activitypub_inbox_update', $activity, $user_id, $activity_object );
+			return;
+		}
+
+		if ( is_self_ping( $activity['object']['id'] ) ) {
 			return;
 		}
 
@@ -106,16 +114,16 @@ class Create {
 			return $valid;
 		}
 
-		$object   = $json_params['object'];
-		$required = array(
-			'id',
-			'inReplyTo',
-			'content',
-		);
+		$object = $json_params['object'];
 
 		if ( ! is_array( $object ) ) {
 			return false;
 		}
+
+		$required = array(
+			'id',
+			'content',
+		);
 
 		if ( array_intersect( $required, array_keys( $object ) ) !== $required ) {
 			return false;
